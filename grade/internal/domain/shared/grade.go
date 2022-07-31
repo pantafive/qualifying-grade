@@ -1,83 +1,84 @@
 package shared
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/emacsway/qualifying-grade/grade/internal/domain/seedwork"
 )
 
-const MaxGradeValue = uint8(5)
-
-var (
-	ErrInvalidGrade = errors.New(fmt.Sprintf("grade should be between 0 and %d", MaxGradeValue))
-)
-
 const (
-	Expert       = Grade(5)
-	Candidate    = Grade(4)
-	Grade1       = Grade(3)
-	Grade2       = Grade(2)
-	Grade3       = Grade(1)
-	WithoutGrade = Grade(0)
+	MaxGradeValue uint8 = 5
+
+	Expert       uint8 = 5
+	Candidate    uint8 = 4
+	Grade1       uint8 = 3
+	Grade2       uint8 = 2
+	Grade3       uint8 = 1
+	WithoutGrade uint8 = 0
 )
+
+var ErrInvalidGrade = fmt.Errorf("grade should be between 0 and %d", MaxGradeValue)
+
+type Grade struct {
+	value uint8
+}
 
 func NewGrade(value uint8) (Grade, error) {
 	if value > MaxGradeValue {
-		return Grade(0), ErrInvalidGrade
+		return Grade{}, ErrInvalidGrade
 	}
-	return Grade(value), nil
+	return Grade{value}, nil
 }
 
-type Grade uint8
-
-func (g Grade) NextGradeAchieved(endorsementCount uint) bool {
-	if g == Candidate {
+func (g *Grade) NextGradeAchieved(endorsementCount uint) bool {
+	switch g.value {
+	case Candidate:
 		return endorsementCount >= 40
-	} else if g == Grade3 {
+	case Grade3:
 		return endorsementCount >= 20
-	} else if g == Grade2 {
+	case Grade2:
 		return endorsementCount >= 14
-	} else if g == Grade1 {
+	case Grade1:
 		return endorsementCount >= 10
-	} else if g == WithoutGrade {
+	case WithoutGrade:
 		return endorsementCount >= 6
+	default:
+		return false
 	}
-	return false
 }
 
-func (g Grade) HasNext() bool {
-	return uint8(g) < MaxGradeValue
+func (g *Grade) HasNext() bool {
+	return g.value < MaxGradeValue
 }
 
-func (g Grade) Next() (Grade, error) {
-	nextGrade, err := NewGrade(uint8(g) + 1)
+func (g *Grade) Next() (Grade, error) {
+	nextGrade, err := NewGrade(g.value + 1)
 	if err != nil {
-		return g, err
+		return *g, err
 	}
 	return nextGrade, nil
 }
 
-func (g Grade) HasPrevious() bool {
-	return uint8(g) > 0
+func (g *Grade) HasPrevious() bool {
+	return g.value > 0
 }
 
-func (g Grade) Previous() (Grade, error) {
-	previousGrade, err := NewGrade(uint8(g) - 1)
+func (g *Grade) Previous() (Grade, error) {
+	previousGrade, err := NewGrade(g.value - 1)
 	if err != nil {
-		return g, err
+		return *g, err
 	}
 	return previousGrade, nil
 }
 
-func (g Grade) Export() uint8 {
-	return uint8(g)
+func (g *Grade) Export() uint8 {
+	return g.value
 }
 
 func (g *Grade) Import(value uint8) {
-	*g = Grade(value)
+	g.value = value
 }
 
 func (g Grade) ExportTo(ex seedwork.ExporterSetter[uint8]) {
-	ex.SetState(uint8(g))
+	ex.SetState(g.value)
 }
